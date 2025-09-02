@@ -1,0 +1,35 @@
+# constraints/constraints.py
+
+import cvxpy as cp
+import pandas as pd
+
+def weight_bounds(w, lower: float = 0.0, upper: float = 1.0):
+    """
+    Returns non-negativity and upper-bound constraints on weights.
+    """
+    return [w >= lower, w <= upper]
+
+def sector_neutral_constraints(w, sector_map: pd.Series, max_exposure: float):
+    """
+    Enforce that the sum of weights for each sector <= max_exposure.
+    sector_map: pandas Series mapping tickers (in order) -> sector labels
+                Its index order must match the ordering used when defining `w`.
+    """
+    constraints = []
+    # Build a list of positions for each sector
+    for sector in sector_map.unique():
+        mask = (sector_map == sector).values
+        # get integer positions where mask is True
+        positions = [i for i, flag in enumerate(mask) if flag]
+        if positions:
+            # sum the corresponding entries of w
+            constraints.append(cp.sum(cp.vstack([w[i] for i in positions])) <= max_exposure)
+    return constraints
+
+def beta_neutral_constraints(w, betas: pd.Series, tol: float = 1e-3):
+    """
+    Enforce portfolio beta ≈ 0 (or within ±tol).
+    betas: Series mapping tickers -> asset betas vs. a benchmark
+    """
+    return [betas.values @ w == 0]  # exact neutrality; you can add ±tol with two inequalities
+
