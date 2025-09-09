@@ -31,5 +31,9 @@ def beta_neutral_constraints(w, betas: pd.Series, tol: float = 1e-3):
     Enforce portfolio beta ≈ 0 (or within ±tol).
     betas: Series mapping tickers -> asset betas vs. a benchmark
     """
-    return [betas.values @ w == 0]  # exact neutrality; you can add ±tol with two inequalities
-
+    beta_expr = betas.values @ w
+    if tol > 0:
+        return [beta_expr<= tol, beta_expr >= -tol]
+    else:
+        return [beta_expr == 0]
+    
