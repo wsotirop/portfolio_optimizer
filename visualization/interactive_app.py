@@ -34,13 +34,14 @@ def fetch_prices_cached(tickers, start, end):
     return get_price_data(tickers, start, end)
 
 @st.cache_data(show_spinner=False)
-def fetch_ff_cached(start, end):
-    return get_fama_french_factors(start, end)
+def fetch_ff_cached(start, end, freq="daily"):
+    return get_fama_french_factors(start, end, freq=freq)
 
 @st.cache_data(show_spinner=False)
 def fetch_sector_map_cached(tickers):
     return get_sector_map(tickers)
 # ------------------------------------
+
 
 st.set_page_config(layout="wide")
 st.title("📊 Portfolio Optimizer Dashboard")
@@ -232,10 +233,20 @@ if floor is not None:
             st.stop()
 
 # --- Risk-free from Fama–French (annualized for the chosen freq) ---
-ff = fetch_ff_cached(start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-rf_series = ff["RF"].loc[rets.index]          # daily decimal
+ff = fetch_ff_cached(
+    start.strftime("%Y-%m-%d"),
+    end.strftime("%Y-%m-%d"),
+    freq=mv_kwargs.get("freq", "daily")
+)
+
 periods = 252 if mv_kwargs.get("freq","daily") == "daily" else 12
-rf_annual = float(rf_series.mean() * periods)
+if "RF" in ff.columns:
+    # We only need the annualized average; no need to align RF to asset dates.
+    rf_annual = float(ff["RF"].mean() * periods)
+else:
+    st.warning("Fama–French 'RF' column not found; assuming 0% risk-free for metrics.")
+    rf_annual = 0.0
+
 
 # --- Benchmark (SPY) — robust to yfinance's shape quirks ---
 bench_df = fetch_prices_cached([benchmark_ticker], start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))

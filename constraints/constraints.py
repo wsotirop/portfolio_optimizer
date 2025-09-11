@@ -5,7 +5,12 @@ import pandas as pd
 
 def weight_bounds(w, lower: float = 0.0, upper: float = 1.0):
     """
-    Returns non-negativity and upper-bound constraints on weights.
+    Elementwise lower/upper bound constraints on weights.
+
+    Returns
+    -------
+    list[cp.Constraint]
+        [w >= lower, w <= upper]
     """
     return [w >= lower, w <= upper]
 
